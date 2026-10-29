@@ -54,3 +54,45 @@ qbittorrent_static` gives an interactive shell with the helpers loaded.)
 This package pins a specific `qbittorrent-nox-static` release. To bump it,
 edit the `version` and `[resources.sources.main.*]` `url`/`sha256` in
 `manifest.toml`, then `yunohost app upgrade`.
+
+## I2P settings applied (per the official i2pd qBittorrent guide)
+
+- SAM bridge on/off/host/port: settings `i2p_enabled`, `i2p_sam_host`, `i2p_sam_port`
+- HTTP proxy used for tracker traffic AND `.i2p` hostname resolution:
+  settings `http_proxy_host` (default `127.0.0.1`), `http_proxy_port`
+  (default `4447` = the i2pd app's proxy; the java_i2p router's proxy is
+  the upstream `4444`)
+- Auto-appended I2P tracker list (i2pd guide + ngosang/trackerslist,
+  deduped): toggle with setting `add_trackers_enabled`; the list itself is
+  in `scripts/_common.sh` (`I2P_TRACKERS`)
+- Anonymous mode: DHT/PeX/LSD off and everything bound to `lo`/`127.0.0.1`
+  (the guide's "Network interface" + "Optional IP to bind to" steps), so a
+  clearnet leak is structurally impossible while `anonymous=true`
+- Encryption: allow (not required, not forced) — I2P encrypts on its own
+
+## Verifying seeding works
+
+The installer creates a **seed-test torrent** (`add_seed_test` setting,
+payload at `$data_dir/downloads/i2p-seedtest/`) and starts seeding it to
+the bundled I2P opentrackers. Check it:
+
+```
+curl -s http://127.0.0.1:$(yunohost app setting qbittorrent_static port)/api/v2/torrents/info \
+  | python3 -m json.tool | grep -E '"name"|"state"'
+```
+
+`state` of `stalledUP` means: seeding, no peers yet (normal for a fresh
+torrent). To confirm the trackers actually answer (proves announce-over-
+proxy-over-I2P), list them:
+
+```
+H=$(curl -s http://127.0.0.1:8090/api/v2/torrents/info | python3 -c "import json,sys;print(json.load(sys.stdin)[0]['hash'])")
+curl -s "http://127.0.0.1:8090/api/v2/torrents/trackers?hash=$H" \
+  | python3 -c "import json,sys;[print(t['url'][:48],'| status',t['status'],'|',t['msg'][:60]) for t in json.load(sys.stdin)]"
+```
+
+`status 2` with messages like "updated" = tracker confirmed your announce.
+To go further (a real remote peer fetching from you), add a popular I2P
+torrent (e.g. from a nyaa2p index) and watch it download at a nonzero
+speed — that exercises inbound I2P connections from strangers to your
+seeder end-to-end.

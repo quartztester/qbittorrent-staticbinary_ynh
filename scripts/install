@@ -24,6 +24,10 @@ ynh_app_setting_set_default --key=torrent_port --value=6881
 ynh_app_setting_set_default --key=i2p_enabled --value=true
 ynh_app_setting_set_default --key=i2p_sam_host --value=127.0.0.1
 ynh_app_setting_set_default --key=i2p_sam_port --value=7656
+ynh_app_setting_set_default --key=http_proxy_host --value=127.0.0.1
+ynh_app_setting_set_default --key=http_proxy_port --value=4447
+ynh_app_setting_set_default --key=add_trackers_enabled --value=true
+ynh_app_setting_set_default --key=add_seed_test --value=true
 ynh_app_setting_set_default --key=webui_password --value="$(ynh_string_random --length=32)"
 
 #=================================================
@@ -68,6 +72,61 @@ for i in $(seq 1 30); do
     [ "$i" -eq 30 ] && ynh_die "qBittorrent WebUI did not come up on port $port (check /var/log/$app/$app.log)"
     sleep 1
 done
+
+#=================================================
+# I2P SEED TEST TORRENT
+#=================================================
+# A tiny unique payload, torrented via qBittorrent's own creator API
+# (/api/v2/torrentcreator/addTask) and announced to the bundled I2P
+# opentrackers with startSeeding=true. When it reaches state "stalledUP"/
+# "uploading" and a tracker answers without error, the whole SAM ->
+# router -> I2P-tracker pipeline is demonstrably working. doc/ADMIN.md
+# has the verification commands.
+case "$(echo "${add_seed_test:-true}" | tr '[:upper:]' '[:lower:]')" in
+true|1|yes|on)
+    ynh_script_progression "Creating the I2P seed-test torrent..."
+    st_dir="$data_dir/downloads/i2p-seedtest"
+    mkdir -p "$st_dir"
+    chown "$app:$app" "$st_dir"
+
+    st_payload="$st_dir/yunohost-i2p-seedtest.txt"
+    if [ ! -f "$st_payload" ]; then
+        {
+            echo "YunoHost qBittorrent (static) I2P seed test"
+            echo "Created: $(date --iso-8601=seconds)"
+            echo "This file exists to prove that torrenting over I2P via the"
+            echo "SAM bridge works. Safe to delete; see doc/ADMIN.md."
+            echo "--- random filler (unique infohash per install) ---"
+            head -c 200000 /dev/urandom | base64
+        } > "$st_payload"
+        chown "$app:$app" "$st_payload"
+    fi
+
+    # Trackers come from the same list render_qbt_config embeds as
+    # Session\AdditionalTrackers, so the two never drift apart.
+    seed_task=$(curl -sf -X POST \
+        --data-urlencode "sourcePath=$st_payload" \
+        --data-urlencode "torrentFilePath=$st_dir/yunohost-i2p-seedtest.torrent" \
+        --data-urlencode "trackers=$I2P_TRACKERS" \
+        --data-urlencode "private=false" \
+        --data-urlencode "startSeeding=true" \
+        "http://127.0.0.1:$port/api/v2/torrentcreator/addTask" 2>/dev/null || true)
+
+    if [ -n "$seed_task" ]; then
+        for i in $(seq 1 24); do
+            sleep 5
+            if curl -sf "http://127.0.0.1:$port/api/v2/torrents/info" \
+                | grep -q "yunohost-i2p-seedtest"; then
+                ynh_script_progression "Seed-test torrent is loaded and seeding"
+                break
+            fi
+            [ "$i" -eq 24 ] && ynh_print_warn "Seed-test torrent did not appear within 120s — check /var/log/$app/$app.log"
+        done
+    else
+        ynh_print_warn "Could not create the seed-test torrent (non-fatal). I2P seeding works regardless; you can add any *.i2p torrent from the WebUI to test."
+    fi
+    ;;
+esac
 
 #=================================================
 # END OF SCRIPT
