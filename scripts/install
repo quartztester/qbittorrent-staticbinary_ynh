@@ -74,7 +74,7 @@ for i in $(seq 1 30); do
 done
 
 #=================================================
-# I2P DISCOVERY (RSS feed + Postman search plugin, no account needed)
+# I2P DISCOVERY (Postman search plugin, no account needed; search-only)
 #=================================================
 ynh_enable_i2p_discovery
 

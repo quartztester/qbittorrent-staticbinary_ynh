@@ -106,25 +106,24 @@ PY
 }
 
 #=================================================
-# Account-free I2P discovery: Postman RSS feed + search plugin
+# Account-free I2P discovery: Postman search plugin (search-only)
 #=================================================
 # tracker2.postman.i2p is where the live I2P swarms actually are.
-# Two zero-signup channels, both routed through the router's HTTP proxy:
-#   * WebUI RSS tab  -> feed fetched by qbt's own RSS engine (proxy_rss)
-#   * WebUI Search tab -> bundled postman_i2p.py plugin; its python
-#     subprocess resolves .i2p via HTTP_PROXY injected by a drop-in.
-# Safe to re-run (idempotent).
+# Discovery is SEARCH-ONLY via the WebUI Search tab: the bundled
+# postman_i2p engine's python subprocess resolves .i2p via the proxy
+# environment qbt hands it. (An RSS feed used to be pre-registered;
+# it was retired — Postman's RSS is empty/throttled more often than
+# not, and the Search tab supersedes it.) Safe to re-run (idempotent).
 ynh_enable_i2p_discovery() {
-    ynh_script_progression "Enabling account-free I2P discovery (Postman RSS + search plugin)..."
+    ynh_script_progression "Enabling account-free I2P discovery (Postman search plugin)..."
 
-    # --- RSS ---
+    # search plugin subprocesses fetch through the session's misc proxy
     curl -sf -X POST \
-        --data-urlencode 'json={"proxy_rss":true,"proxy_misc":true,"rss_processing_enabled":true}' \
+        --data-urlencode 'json={"proxy_misc":true,"rss_processing_enabled":false}' \
         "http://127.0.0.1:$port/api/v2/app/setPreferences" >/dev/null || true
-    curl -sf -X POST \
-        --data-urlencode "path=Postman" \
-        --data-urlencode "url=http://tracker2.postman.i2p/?view=RSS" \
-        "http://127.0.0.1:$port/api/v2/rss/addFeed" >/dev/null || true
+    # retire the legacy auto-registered feed if an older install has it
+    curl -sf -X POST -d "path=Postman" \
+        "http://127.0.0.1:$port/api/v2/rss/removeItem" >/dev/null || true
 
     # Default engine policy: only the I2P-NATIVE index (Postman) is
     # ticked. TorrentFunk/TorrentZ mirror the clearnet catalog — their
