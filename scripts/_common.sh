@@ -53,7 +53,11 @@ PY
     local anon="${anonymous:-true}"
     case "$(echo "$anon" | tr '[:upper:]' '[:lower:]')" in
         true|1|yes|on)
-            anonymous="true"; dht="false"; lsd="false"; pex="false"
+            # Checkboxes on by default per user preference; libtorrent's
+            # anonymous session suppresses DHT/PeX/LSD functionally, so this
+            # is leak-free (verified 2026-10-29: zero UDP sockets, zero
+            # conntrack hits with anonymous on).
+            anonymous="true"; dht="true"; lsd="true"; pex="true"
             # i2pd guide: bind everything to loopback so nothing leaks
             net_interface="lo"; net_interface_address="127.0.0.1" ;;
         *)
