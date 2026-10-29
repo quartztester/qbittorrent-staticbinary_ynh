@@ -7,8 +7,6 @@
 source _common.sh
 source /usr/share/yunohost/helpers
 
-ynh_abort_if_errors
-
 #=================================================
 # REJECT UNSUPPORTED SUB-PATH INSTALLS
 #=================================================
