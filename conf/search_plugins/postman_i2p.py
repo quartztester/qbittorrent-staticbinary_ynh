@@ -4,20 +4,13 @@
 # qBittorrent's environment so that .i2p hostnames resolve.
 import re
 import requests
-from requests.utils import dict_from_cookiejar
 
 API = {
     'search':   {'name': 'search'},
-    'category': {'name': 'category', 'default': '-1'},
     'orderby':  {'name': 'orderby',  'default': '5'},   # swarmsize
     'lastact':  {'name': 'lastactive', 'default': '0'}  # seeded torrents only
 }
 BASEURL = 'http://tracker2.postman.i2p/'
-CATEGORIES = {
-    '-1': 'All', '1': 'Movies', '2': 'Music', '3': 'TV', '4': 'Games',
-    '5': 'Apps', '6': 'Misc', '8': 'Pictures', '9': 'Anime', '10': 'Comics',
-    '13': 'Books', '20': 'Documentary',
-}
 UA = 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'
 
 
@@ -88,7 +81,7 @@ class SearchEngine(search):
 
     def search(self, key, page=0):
         args = {'search': key, 'view': 'Main', 'reset': '1', 'limit': '50'}
-        args['category'] = self._getArg(API['category'], '-1')
+        args['category'] = self._getArg(API.get('category', {'name': 'category'}), '-1')
         args['orderby'] = self._getArg(API['orderby'], '5')
         args['lastactive'] = self._getArg(API['lastact'], '0')
         try:

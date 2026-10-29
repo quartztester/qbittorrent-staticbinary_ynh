@@ -4,33 +4,28 @@
 # COMMON FUNCTIONS AND VARS
 #=================================================
 
-# I2P trackers (merged: docs.i2pd.website qBittorrent guide +
-# ngosang/trackerslist trackers_all_i2p.txt, deduped by host:port).
-# Refresh source: https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_i2p.txt
+# I2P trackers. Reachability census 2026-10-29 via the box's I2P HTTP
+# proxy: entries answer HTTP in any form (bencode, tracker-side error
+# page, even empty opentracker body) = alive; name-unresolvable /
+# proxy-refused / timeout = dropped. Removed this pass: nyaaplus,
+# opentracker.eeptorrent, opentracker.simp (+udp), qimlz..b32, sigma,
+# tracker.nyaa2p, opentracker-actix (host gone; dg2 is zzzot's vanity),
+# vern, atia, omitracker, psa.  Deliberately excluded:
+# opentracker.i2p.rocks (clearnet bridge — announcing there would
+# outproxy and expose the server IP, against the I2P-only policy).
 I2P_TRACKERS=$(cat <<'EOF'
-http://btrackrqkjp6kgelov5a3uxisis77ofxqt5nvy5hvvtoybjpmq4q.b32.i2p/announce
-http://freetracker.i2p:7331/announce
-http://nyaaplus.i2p:80/announce
-http://opentracker.dg2.i2p:80/a
-http://opentracker.eeptorrent.i2p:80/a
-http://opentracker.fattydove.i2p:80/a
-http://opentracker.r4sas.i2p:80/a
-http://opentracker.simp.i2p:80/a
-http://opentracker.skank.i2p:80/a
-http://qimlze77z7w32lx2ntnwkuqslrzlsqy7774v3urueuarafyqik5a.b32.i2p:80/a
-http://sigmatracker.i2p:80/a
-http://tracker.insulaocculta.i2p/a
-http://tracker.nyaa2p.i2p:80/announce
-http://yet-another-public-tracker.i2p/announce
-udp://opentracker.simp.i2p:6969/a
-udp://opentracker.skank.i2p:6969/a
 http://tracker2.postman.i2p/announce.php
-http://opentracker-actix.i2p/announce
+http://w7tpbzncbcocrqtwwm3nezhnnsw4ozadvi2hmvzdhrqzfxfum7wa.b32.i2p/a
+http://btrackrqkjp6kgelov5a3uxisis77ofxqt5nvy5hvvtoybjpmq4q.b32.i2p/announce
+http://yet-another-public-tracker.i2p/announce
+http://freetracker.i2p:7331/announce
+http://opentracker.dg2.i2p:80/a
+http://opentracker.fattydove.i2p:80/a
+http://opentracker.skank.i2p:80/a
+http://opentracker.r4sas.i2p:80/a
 http://opentracker.bt.i2p/a
-http://vern.i2p:6969/announce
-http://atia.i2p/announce
-http://omitracker.i2p/announce
-http://psa.i2p/a
+http://tracker.insulaocculta.i2p/a
+udp://opentracker.skank.i2p:6969/a
 EOF
 )
 
