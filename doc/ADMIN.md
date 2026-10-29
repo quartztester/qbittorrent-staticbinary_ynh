@@ -3,9 +3,11 @@
 Torrent traffic is handed to your I2P router through the SAM bridge, which
 must be running and listening. This package does **not** install an I2P
 router — it expects one of the `java_i2p` / `i2pd` YunoHost apps to provide
-SAM. Both apps enable SAM by default on distinct loopback ports: `java_i2p`
-on `127.0.0.1:7656` (upstream default), `i2pd` on `127.0.0.1:7666`. Set
-`i2p_sam_port` to whichever router you use.
+SAM. Both apps enable SAM by default on the upstream default port 7656;
+whichever router was installed first keeps 7656, the other automatically
+fell back to 7666. Read the live value with
+`yunohost app setting i2pd port_sam` (or `java_i2p`) and set
+`i2p_sam_port` to match the router you use.
 
 Only torrents whose tracker/peer is an I2P `*.i2p` address work over I2P;
 clearnet torrents are unaffected (and hidden when anonymous mode is on).
