@@ -126,12 +126,16 @@ ynh_enable_i2p_discovery() {
         --data-urlencode "url=http://tracker2.postman.i2p/?view=RSS" \
         "http://127.0.0.1:$port/api/v2/rss/addFeed" >/dev/null || true
 
-    # --- search plugin file ---
-    local pl_dir="$data_dir/profile/data/qBittorrent/search_plugins"
-    mkdir -p "$pl_dir"
-    cp -f "$install_dir/conf/search_plugins/postman_i2p.py" "$pl_dir/postman_i2p.py"
-    chmod +x "$pl_dir/postman_i2p.py"
-    chown -R "$app:$app" "$data_dir/profile/data"
+    # --- nova3 search framework + bundled postman_i2p engine ---
+    # qbt 5.x hard-codes its engine location to <conf>/data/nova3 (the
+    # Search/PluginsPath key no longer exists). On an online boot qbt
+    # self-downloads the framework there; we pre-seed framework + our
+    # engine so it also works offline and ships discovery out-of-box.
+    local pl_dir="$data_dir/profile/qBittorrent/data/nova3"
+    mkdir -p "$pl_dir/engines"
+    cp -f "$install_dir/conf/nova3/"*.py "$pl_dir/"
+    cp -f "$install_dir/conf/nova3/engines/"*.py "$pl_dir/engines/"
+    chown -R "$app:$app" "$pl_dir"
 
     # --- Python >= 3.13 for qBittorrent's search subsystem ---
     # qbt 5.3 refuses to run search plugins below CPython 3.13; Debian's
@@ -148,9 +152,9 @@ ynh_enable_i2p_discovery() {
         ynh_setup_source --source_id=py313 --dir="$install_dir" || true
         py="$install_dir/python/bin/python3.13"
         if [ -x "$py" ]; then
-            "$py" -m pip install --quiet --disable-pip-version-check requests >/dev/null 2>&1 || py=""
-        else
-            py=""
+            # soft: the bundled engine uses stdlib-only helpers; pip
+            # failures (offline clearnet) must not disable search
+            "$py" -m pip install --quiet --disable-pip-version-check requests >/dev/null 2>&1 || true
         fi
     fi
     chown -R "$app:$app" "$install_dir/python" 2>/dev/null || true
@@ -186,11 +190,9 @@ EOF
     if [ -n "$py" ] && ! grep -q '^Search\\Enabled=true' "$conf" 2>/dev/null; then
         ynh_systemctl --service="$app" --action="stop"
         sed -i '/^Search\\/d' "$conf"
-        {
-            printf 'Search\\Enabled=true\n'
-            printf 'Search\\PluginsPath=%s\n' "$pl_dir"
-            printf 'Search\\PythonPath=%s\n' "$py"
-        } >> "$conf"
+        # keys must live in [Application] — qbt ignores them elsewhere
+        awk -v p="$pl_dir" -v py="$py" '/^\[Application\]/{print; print "Search\\Enabled=true"; print "Search\\PluginsPath=" p; print "Search\\PythonPath=" py; next}1' "$conf" > "$conf.tmp" \
+            && mv "$conf.tmp" "$conf"
         chown "$app:$app" "$conf"
         systemctl daemon-reload
         ynh_systemctl --service="$app" --action="start"
