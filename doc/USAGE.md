@@ -25,16 +25,17 @@ temporarily down — its *tracker* announcing still works meanwhile
 
 ## Searching (Search tab)
 
-The install also registers a bundled **postman_i2p** search plugin
-(WebUI → Search tab → tick *postman_i2p*, hit Search): it queries
-Postman's anonymous search HTML through the same I2P proxy and returns
-name/seeders/leechers rows — sorted by swarm size, seeded torrents only.
-If the Search tab stays empty on a fresh box, give it a minute: qbt probes
-for the bundled CPython 3.13 at startup (qbt's plugin runtime requires
-Python >= 3.13, so the package ships one).
+Only one torrent index is genuinely **native to I2P** (its population
+announces to I2P trackers): **Postman**. The install therefore ticks
+just the bundled **postman_i2p** engine by default — it queries
+Postman's anonymous search through the I2P proxy and returns
+seeders/leechers, sorted by swarm size.
 
-Note: Postman rate-limits aggressively ("Ratelimit active" = wait, don't
-retry in a loop); repeated hammering can get an account/network blocked.
+Two *catalog-mirror* engines (TorrentFunk, TorrentZ) are also installed
+but **unticked by default**: they mirror the clearnet catalog (their
+.torrent files announce to clearnet trackers), so their big seed counts
+belong to swarms an I2P-only client cannot reach. Tick them in
+"Search plugins" only if you want that extra noise.
 
 ## Browsing with more detail
 

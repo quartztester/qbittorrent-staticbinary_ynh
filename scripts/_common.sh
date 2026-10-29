@@ -126,6 +126,17 @@ ynh_enable_i2p_discovery() {
         --data-urlencode "url=http://tracker2.postman.i2p/?view=RSS" \
         "http://127.0.0.1:$port/api/v2/rss/addFeed" >/dev/null || true
 
+    # Default engine policy: only the I2P-NATIVE index (Postman) is
+    # ticked. TorrentFunk/TorrentZ mirror the clearnet catalog — their
+    # swarms are unreachable from an I2P-only box — so they ship
+    # installed but unticked; users can tick them in the plugin dialog.
+    curl -sf -X POST -d "names=postman_i2p" -d "enable=true" \
+        "http://127.0.0.1:$port/api/v2/search/enablePlugin" >/dev/null || true
+    for eng in torrentfunk torrentz; do
+        curl -sf -X POST -d "names=$eng" -d "enable=false" \
+            "http://127.0.0.1:$port/api/v2/search/enablePlugin" >/dev/null || true
+    done
+
     # --- nova3 search framework + bundled postman_i2p engine ---
     # qbt 5.x hard-codes its engine location to <conf>/data/nova3 (the
     # Search/PluginsPath key no longer exists). On an online boot qbt
