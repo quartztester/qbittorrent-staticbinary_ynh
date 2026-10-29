@@ -1,0 +1,78 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+#=================================================
+# REJECT UNSUPPORTED SUB-PATH INSTALLS
+#=================================================
+
+if [ "$path" != "/" ]; then
+    ynh_die "The qBittorrent WebUI cannot be served from a sub-path. Install it on the root of a dedicated (sub)domain."
+fi
+
+#=================================================
+# INITIALIZE AND STORE SETTINGS
+#=================================================
+ynh_script_progression "Initializing settings..."
+
+ynh_app_setting_set_default --key=torrent_port --value=6881
+ynh_app_setting_set_default --key=i2p_enabled --value=true
+ynh_app_setting_set_default --key=i2p_sam_host --value=127.0.0.1
+ynh_app_setting_set_default --key=i2p_sam_port --value=7656
+ynh_app_setting_set_default --key=webui_password --value="$(ynh_string_random --length=32)"
+
+#=================================================
+# INSTALL THE STATIC BINARY
+#=================================================
+ynh_script_progression "Installing the qBittorrent static binary..."
+
+ynh_setup_source --dest_dir="$install_dir"
+
+chmod 755 "$install_dir/qbittorrent-nox"
+chown -R "$app:$app" "$install_dir"
+
+#=================================================
+# APP CONFIGURATION
+#=================================================
+ynh_script_progression "Adding $app's configuration files..."
+
+mkdir -p "/var/log/$app"
+chown "$app:adm" "/var/log/$app"
+
+render_qbt_config
+
+ynh_config_add_nginx
+ynh_config_add_systemd
+ynh_config_add_logrotate
+
+yunohost service add "$app" \
+    --description="qBittorrent (static binary, I2P-capable)" \
+    --log="/var/log/$app/$app.log"
+
+#=================================================
+# START THE SERVICE
+#=================================================
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start"
+
+# Wait for the WebUI API to answer (localhost is exempt from authentication,
+# exactly like the *arr stack connects to it)
+for i in $(seq 1 30); do
+    curl -sf "http://127.0.0.1:$port/api/v2/app/version" >/dev/null && break
+    [ "$i" -eq 30 ] && ynh_die "qBittorrent WebUI did not come up on port $port (check /var/log/$app/$app.log)"
+    sleep 1
+done
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression "Installation of $app completed"

@@ -1,0 +1,32 @@
+[Unit]
+Description=qBittorrent (static binary) for __APP__
+Documentation=https://github.com/userdocs/qbittorrent-nox-static
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__
+Environment=HOME=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/qbittorrent-nox --profile=__DATA_DIR__/profile --webui-port=__PORT__ --confirm-legal-notice
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0027
+
+# Hardening (data lives in /home/yunohost.app, so no ProtectHome)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+ReadWritePaths=__DATA_DIR__
+
+StandardOutput=append:/var/log/__APP__/__APP__.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

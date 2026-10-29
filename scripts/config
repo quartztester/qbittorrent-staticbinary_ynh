@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Read-only status display for the config panel.
+# Editable values live in app settings; see doc/ADMIN.md for how to change
+# them (settings are re-rendered into qBittorrent.conf on upgrade/apply).
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+get__i2p_status() {
+    local enabled
+    enabled="$(ynh_app_setting_get --key=i2p_enabled)"
+    if [ "$enabled" = "true" ]; then
+        echo "style: success"
+    else
+        echo "style: warning"
+    fi
+    echo "value: $enabled"
+}
+
+get__sam_endpoint() {
+    local host port
+    host="$(ynh_app_setting_get --key=i2p_sam_host)"
+    port="$(ynh_app_setting_get --key=i2p_sam_port)"
+    echo "value: ${host:-127.0.0.1}:${port:-7656}"
+}
+
+get__webui_endpoint() {
+    local domain port
+    domain="$(ynh_app_setting_get --key=domain)"
+    port="$(ynh_app_setting_get --key=port)"
+    echo "value: https://${domain}/ (internal 127.0.0.1:${port})"
+}

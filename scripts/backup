@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+ynh_print_info "Declaring files to be backed up..."
+
+#=================================================
+# BACKUP THE APP MAIN DIR
+#=================================================
+ynh_backup "$install_dir"
+
+#=================================================
+# BACKUP THE DATA DIR
+#=================================================
+# Contains the qBittorrent profile (config, resume data, RSS) plus downloads
+ynh_backup "$data_dir"
+
+#=================================================
+# BACKUP SYSTEM CONFIGURATION
+#=================================================
+ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_backup "/etc/systemd/system/$app.service"
+ynh_backup "/etc/logrotate.d/$app"
+
+ynh_print_info "Backup of $app completed"

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+# The WebUI is served from the root of the domain (sub-path is rejected at
+# install time), so only a domain change is relevant here.
+ynh_script_progression "Re-creating the NGINX configuration for the new URL..."
+
+ynh_config_add_nginx
+
+ynh_systemctl --service="$app" --action="restart"
+
+ynh_script_progression "Change of URL completed for $app"

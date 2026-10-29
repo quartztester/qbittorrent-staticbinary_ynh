@@ -1,0 +1,24 @@
+version = "1.0"
+
+[main]
+
+    [main.status]
+    name = "Status"
+
+        [main.status.i2p_status]
+        ask.en = "I2P routing enabled"
+        ask.fr = "Routage I2P activé"
+        type = "string"
+        bind = "none"
+
+        [main.status.sam_endpoint]
+        ask.en = "SAM bridge endpoint"
+        ask.fr = "Endpoint du pont SAM"
+        type = "display"
+        bind = "none"
+
+        [main.status.webui_endpoint]
+        ask.en = "WebUI endpoint"
+        ask.fr = "Endpoint de l'interface web"
+        type = "display"
+        bind = "none"

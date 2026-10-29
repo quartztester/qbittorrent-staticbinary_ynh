@@ -1,0 +1,85 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/main/schemas/manifest.v2.schema.json
+
+packaging_format = 2
+
+id = "qbittorrent_static"
+name = "qBittorrent (static)"
+description.en = "BitTorrent download client, static build with native I2P support"
+description.fr = "Client de téléchargement BitTorrent, build statique avec support I2P natif"
+
+version = "5.3.0~ynh1"
+
+maintainers = ["quartztester"]
+
+[upstream]
+license = "GPL-2.0-or-later"
+website = "https://www.qbittorrent.org"
+admindoc = "https://github.com/userdocs/qbittorrent-nox-static"
+code = "https://github.com/qbittorrent/qBittorrent"
+cpe = "cpe:2.3:a:qbittorrent:qbittorrent"
+
+[integration]
+yunohost = ">= 12.1.17"
+helpers_version = "2.1"
+architectures = ["amd64", "arm64", "armhf"]
+multi_instance = true
+ldap = false
+sso = false
+disk = "50M"
+ram.build = "50M"
+ram.runtime = "256M"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "admins"
+
+    [install.anonymous]
+    ask.en = "I2P-only / anonymous mode (disable DHT, PeX, LSD)"
+    ask.fr = "Mode anonyme / I2P uniquement (désactive DHT, PeX, LSD)"
+    help.en = "Strongly recommended for an I2P-only setup. Keep it on to avoid leaking your server's real IP to the clearnet swarm."
+    help.fr = "Fortement recommandé pour une configuration I2P uniquement. Laissez activé pour ne pas exposer l'IP réelle du serveur."
+    type = "boolean"
+    default = true
+
+[resources]
+    [resources.sources.main]
+    in_subdir = false
+    extract = false
+    rename = "qbittorrent-nox"
+
+    [resources.sources.main.amd64]
+    url = "https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-5.3.0_v2.1.2/x86_64-qbittorrent-nox"
+    sha256 = "563e695a2b830e62e627e1ae403bcfcc494e444d5cabb5ecc1e09907353d8ed5"
+
+    [resources.sources.main.arm64]
+    url = "https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-5.3.0_v2.1.2/aarch64-qbittorrent-nox"
+    sha256 = "ac1e57089795270489491320c5fff0ceaed8e8910cf3abb6be597879408eb033"
+
+    [resources.sources.main.armhf]
+    url = "https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-5.3.0_v2.1.2/armhf-qbittorrent-nox"
+    sha256 = "d121d99d7171b4845f019b095a37d1cbe7288eef351c6fbde53d6bcdc30ecfc2"
+
+    autoupdate.strategy = "latest_github_release"
+    autoupdate.asset.amd64 = "^x86_64-qbittorrent-nox$"
+    autoupdate.asset.arm64 = "^aarch64-qbittorrent-nox$"
+    autoupdate.asset.armhf = "^armhf-qbittorrent-nox$"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+
+    [resources.permissions]
+    main.url = "/"
+
+    [resources.ports]
+    main.default = 8090

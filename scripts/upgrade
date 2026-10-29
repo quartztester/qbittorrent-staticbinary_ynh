@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+#=================================================
+# INSTALL OR UPDATE THE STATIC BINARY
+#=================================================
+ynh_script_progression "Updating the qBittorrent static binary..."
+
+ynh_setup_source --dest_dir="$install_dir"
+
+chmod 755 "$install_dir/qbittorrent-nox"
+chown -R "$app:$app" "$install_dir"
+
+#=================================================
+# RE-RENDER CONFIGURATION FILES
+#=================================================
+ynh_script_progression "Re-creating configuration files..."
+
+# qBittorrent rewrites its conf file at shutdown, so it must be stopped
+# before re-rendering, or the new settings would be clobbered.
+ynh_systemctl --service="$app" --action="stop"
+
+mkdir -p "/var/log/$app"
+chown "$app:adm" "/var/log/$app"
+
+render_qbt_config
+ynh_config_add_nginx
+ynh_config_add_systemd
+ynh_config_add_logrotate
+
+yunohost service add "$app" \
+    --description="qBittorrent (static binary, I2P-capable)" \
+    --log="/var/log/$app/$app.log"
+
+#=================================================
+# START THE SERVICE
+#=================================================
+ynh_script_progression "Starting $app's systemd service..."
+
+ynh_systemctl --service="$app" --action="start"
+
+for i in $(seq 1 30); do
+    curl -sf "http://127.0.0.1:$port/api/v2/app/version" >/dev/null && break
+    [ "$i" -eq 30 ] && ynh_die "qBittorrent WebUI did not come back up on port $port"
+    sleep 1
+done
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
+ynh_script_progression "Upgrade of $app completed"

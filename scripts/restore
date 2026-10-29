@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+#=================================================
+# RESTORE THE APP MAIN DIR
+#=================================================
+ynh_script_progression "Restoring the app main directory..."
+
+ynh_restore "$install_dir"
+chmod 755 "$install_dir/qbittorrent-nox"
+chown -R "$app:$app" "$install_dir"
+
+#=================================================
+# RESTORE THE DATA DIRECTORY
+#=================================================
+ynh_script_progression "Restoring the data directory..."
+
+ynh_restore "$data_dir"
+chown -R "$app:$app" "$data_dir"
+
+#=================================================
+# RESTORE SYSTEM CONFIGURATION
+#=================================================
+ynh_script_progression "Restoring system configurations related to $app..."
+
+ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_restore "/etc/systemd/system/$app.service"
+systemctl enable "$app.service" --quiet
+yunohost service add "$app" \
+    --description="qBittorrent (static binary, I2P-capable)" \
+    --log="/var/log/$app/$app.log"
+ynh_restore "/etc/logrotate.d/$app"
+
+mkdir -p "/var/log/$app"
+chown "$app:adm" "/var/log/$app"
+
+#=================================================
+# RELOAD NGINX AND START THE SERVICE
+#=================================================
+ynh_script_progression "Reloading NGINX web server and $app's service..."
+
+ynh_systemctl --service="$app" --action="start"
+ynh_systemctl --service=nginx --action=reload
+
+ynh_script_progression "Restoration completed for $app"
