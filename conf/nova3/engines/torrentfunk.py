@@ -69,7 +69,7 @@ class torrentfunk:
         for tid, name, size, seeds, peers in self._ROW.findall(html):
             rows.append({
                 "name": urllib.parse.unquote(name)[:200],
-                "link": self.url + "download/" + tid + ".html",
+                "link": self.url + "tor/" + tid + ".torrent",
                 "seeds": int(seeds),
                 "leech": int(peers),
                 "size": size.strip() or "-1",
