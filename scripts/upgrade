@@ -52,6 +52,19 @@ for i in $(seq 1 30); do
 done
 
 #=================================================
+# I2P DISCOVERY VIA RSS (idempotent; installs get it, upgrades gain it)
+#=================================================
+ynh_script_progression "Ensuring the Postman RSS discovery feed is registered..."
+curl -sf -X POST \
+    --data-urlencode 'json={"proxy_rss":true,"proxy_misc":true,"rss_processing_enabled":true}' \
+    "http://127.0.0.1:$port/api/v2/app/setPreferences" >/dev/null || true
+curl -sf -X POST \
+    --data-urlencode "path=Postman" \
+    --data-urlencode "url=http://tracker2.postman.i2p/?view=RSS" \
+    "http://127.0.0.1:$port/api/v2/rss/addFeed" >/dev/null || true
+
+
+#=================================================
 # END OF SCRIPT
 #=================================================
 

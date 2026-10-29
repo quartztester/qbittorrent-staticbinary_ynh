@@ -74,6 +74,24 @@ for i in $(seq 1 30); do
 done
 
 #=================================================
+# I2P DISCOVERY VIA RSS (no account needed)
+#=================================================
+# The Postman tracker (tracker2.postman.i2p) is where the live I2P swarms
+# actually are. Its RSS feed is anonymous and machine-readable; qBittorrent's
+# own RSS engine fetches it *through the I2P proxy* (proxy_rss), so a fresh
+# install shows real torrents in WebUI -> RSS within minutes, no signup.
+# Users click an article -> torrent is fetched (proxy_misc) -> downloads
+# stay 100% over I2P.
+ynh_script_progression "Registering the Postman RSS discovery feed..."
+curl -sf -X POST \
+    --data-urlencode 'json={"proxy_rss":true,"proxy_misc":true,"rss_processing_enabled":true}' \
+    "http://127.0.0.1:$port/api/v2/app/setPreferences" >/dev/null || true
+curl -sf -X POST \
+    --data-urlencode "path=Postman" \
+    --data-urlencode "url=http://tracker2.postman.i2p/?view=RSS" \
+    "http://127.0.0.1:$port/api/v2/rss/addFeed" >/dev/null || true
+
+#=================================================
 # I2P SEED TEST TORRENT
 #=================================================
 # A tiny unique payload, torrented via qBittorrent's own creator API
