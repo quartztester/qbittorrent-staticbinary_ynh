@@ -109,3 +109,101 @@ PY
     chown -R "$app:$app" "$data_dir/profile" "$data_dir/downloads"
     chmod 600 "$data_dir/profile/qBittorrent/config/qBittorrent.conf"
 }
+
+#=================================================
+# Account-free I2P discovery: Postman RSS feed + search plugin
+#=================================================
+# tracker2.postman.i2p is where the live I2P swarms actually are.
+# Two zero-signup channels, both routed through the router's HTTP proxy:
+#   * WebUI RSS tab  -> feed fetched by qbt's own RSS engine (proxy_rss)
+#   * WebUI Search tab -> bundled postman_i2p.py plugin; its python
+#     subprocess resolves .i2p via HTTP_PROXY injected by a drop-in.
+# Safe to re-run (idempotent).
+ynh_enable_i2p_discovery() {
+    ynh_script_progression "Enabling account-free I2P discovery (Postman RSS + search plugin)..."
+
+    # --- RSS ---
+    curl -sf -X POST \
+        --data-urlencode 'json={"proxy_rss":true,"proxy_misc":true,"rss_processing_enabled":true}' \
+        "http://127.0.0.1:$port/api/v2/app/setPreferences" >/dev/null || true
+    curl -sf -X POST \
+        --data-urlencode "path=Postman" \
+        --data-urlencode "url=http://tracker2.postman.i2p/?view=RSS" \
+        "http://127.0.0.1:$port/api/v2/rss/addFeed" >/dev/null || true
+
+    # --- search plugin file ---
+    local pl_dir="$data_dir/profile/data/qBittorrent/search_plugins"
+    mkdir -p "$pl_dir"
+    cp -f "$install_dir/conf/search_plugins/postman_i2p.py" "$pl_dir/postman_i2p.py"
+    chmod +x "$pl_dir/postman_i2p.py"
+    chown -R "$app:$app" "$data_dir/profile/data"
+
+    # --- Python >= 3.13 for qBittorrent's search subsystem ---
+    # qbt 5.3 refuses to run search plugins below CPython 3.13; Debian's
+    # system python is older. Reuse a local standalone interpreter if one
+    # exists, otherwise unpack the pinned python-build-standalone tarball
+    # into the install dir (same self-contained spirit as the static
+    # qbittorrent-nox binary) and pip-install 'requests' into it.
+    local py=""
+    for cand in "$install_dir/python/bin/python3.13" /usr/local/opt/python3.13/bin/python3.13; do
+        [ -x "$cand" ] && py="$cand" && break
+    done
+    if [ -z "$py" ] && [ "$(uname -m)" = "x86_64" ]; then
+        ynh_script_progression "Installing standalone CPython 3.13 for search plugins..."
+        ynh_setup_source --source_id=py313 --dir="$install_dir" || true
+        py="$install_dir/python/bin/python3.13"
+        if [ -x "$py" ]; then
+            "$py" -m pip install --quiet --disable-pip-version-check requests >/dev/null 2>&1 || py=""
+        else
+            py=""
+        fi
+    fi
+    chown -R "$app:$app" "$install_dir/python" 2>/dev/null || true
+
+    # --- drop-in: .i2p name resolution (HTTP_PROXY) + shim python on PATH
+    #     (qbt probes PATH for its search interpreter before applying
+    #      Search\PythonPath, so the shim is what it actually finds) ---
+    local px="${http_proxy_port:-4447}"
+    rm -f "/etc/systemd/system/$app.service.d/i2p-proxy-env.conf" \
+          "/etc/systemd/system/$app.service.d/i2p-search-python.conf"
+    local shim=""
+    if [ -n "$py" ]; then
+        shim="$install_dir/python-shim"
+        mkdir -p "$shim"
+        ln -sf "$py" "$shim/python3"
+    fi
+    if [ -n "$shim" ]; then
+        cat > "/etc/systemd/system/$app.service.d/i2p-search.conf" <<EOF
+[Service]
+Environment=HTTP_PROXY=http://127.0.0.1:$px
+Environment=PATH=$shim:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EOF
+    else
+        cat > "/etc/systemd/system/$app.service.d/i2p-search.conf" <<EOF
+[Service]
+Environment=HTTP_PROXY=http://127.0.0.1:$px
+EOF
+    fi
+
+    # --- enable the search subsystem (qbt rewrites its conf at shutdown,
+    #     so flip it while stopped, then restart once) ---
+    local conf="$data_dir/profile/qBittorrent/config/qBittorrent.conf"
+    if [ -n "$py" ] && ! grep -q '^Search\\Enabled=true' "$conf" 2>/dev/null; then
+        ynh_systemctl --service="$app" --action="stop"
+        sed -i '/^Search\\/d' "$conf"
+        {
+            printf 'Search\\Enabled=true\n'
+            printf 'Search\\PluginsPath=%s\n' "$pl_dir"
+            printf 'Search\\PythonPath=%s\n' "$py"
+        } >> "$conf"
+        chown "$app:$app" "$conf"
+        systemctl daemon-reload
+        ynh_systemctl --service="$app" --action="start"
+        for i in $(seq 1 30); do
+            curl -sf "http://127.0.0.1:$port/api/v2/app/version" >/dev/null && break
+            sleep 1
+        done
+    else
+        systemctl daemon-reload
+    fi
+}

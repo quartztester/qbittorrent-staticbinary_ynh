@@ -23,6 +23,19 @@ If the feed stays empty for a long time, Postman is rate-limiting or
 temporarily down — its *tracker* announcing still works meanwhile
 (`torrents/trackers` in the API shows status `Working`).
 
+## Searching (Search tab)
+
+The install also registers a bundled **postman_i2p** search plugin
+(WebUI → Search tab → tick *postman_i2p*, hit Search): it queries
+Postman's anonymous search HTML through the same I2P proxy and returns
+name/seeders/leechers rows — sorted by swarm size, seeded torrents only.
+If the Search tab stays empty on a fresh box, give it a minute: qbt probes
+for the bundled CPython 3.13 at startup (qbt's plugin runtime requires
+Python >= 3.13, so the package ships one).
+
+Note: Postman rate-limits aggressively ("Ratelimit active" = wait, don't
+retry in a loop); repeated hammering can get an account/network blocked.
+
 ## Browsing with more detail
 
 For seed counts and sorting (e.g. *Swarmsize*, *active torrents only*)
