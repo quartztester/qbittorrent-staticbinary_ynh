@@ -49,6 +49,18 @@ ram.runtime = "256M"
     type = "boolean"
     default = true
 
+    [install.i2p_sam_port]
+    ask.en = "I2P SAM bridge port"
+    help.en = "SAMv3 bridge of your I2P router (127.0.0.1 only). Default 7656 — the java_i2p / i2pd router apps both default there; if the router you use fell back to 7666, check `yunohost app setting <router> port_sam`."
+    type = "string"
+    default = "7656"
+
+    [install.http_proxy_port]
+    ask.en = "I2P HTTP proxy port (tracker announcements + .i2p name resolution)"
+    help.en = "HTTP proxy of your I2P router. 4447 = i2pd app default, 4444 = java_i2p app (java's proxy cannot resolve arbitrary .i2p names, so i2pd is recommended even when SAM lives on java_i2p)."
+    type = "string"
+    default = "4447"
+
 [resources]
     [resources.sources.main]
     in_subdir = false
