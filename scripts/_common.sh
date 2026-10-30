@@ -141,11 +141,23 @@ ynh_enable_i2p_discovery() {
     # Search/PluginsPath key no longer exists). On an online boot qbt
     # self-downloads the framework there; we pre-seed framework + our
     # engine so it also works offline and ships discovery out-of-box.
-    local pl_dir="$data_dir/profile/qBittorrent/data/nova3"
-    mkdir -p "$pl_dir/engines"
-    cp -f "$install_dir/conf/nova3/"*.py "$pl_dir/"
-    cp -f "$install_dir/conf/nova3/engines/"*.py "$pl_dir/engines/"
-    chown -R "$app:$app" "$pl_dir"
+    # Source is the package's own conf/ tree: scripts run with cwd =
+    # their scripts/ dir, so ../conf during install/upgrade (clone tree),
+    # falling back to the settings archive for restore-context callers.
+    local nova_src="" cand
+    for cand in "../conf/nova3" "/etc/yunohost/apps/$app/conf/nova3"; do
+        [ -d "$cand" ] && nova_src="$cand" && break
+    done
+    if [ -z "$nova_src" ]; then
+        ynh_print_warn "nova3 framework tree not found; skipping search-plugin pre-seed"
+    else
+        local pl_dir="$data_dir/profile/qBittorrent/data/nova3"
+        mkdir -p "$pl_dir/engines"
+        cp -f "$nova_src/"*.py "$pl_dir/"
+        cp -f "$nova_src/engines/"*.py "$pl_dir/engines/"
+        find "$pl_dir" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
+        chown -R "$app:$app" "$pl_dir"
+    fi
 
     # --- Python >= 3.13 for qBittorrent's search subsystem ---
     # qbt 5.3 refuses to run search plugins below CPython 3.13; Debian's
