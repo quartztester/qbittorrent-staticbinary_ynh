@@ -7,8 +7,7 @@
 source _common.sh
 source /usr/share/yunohost/helpers
 
-# The WebUI is served from the root of the domain (sub-path is rejected at
-# install time), so only a domain change is relevant here.
+# Sub-path is rejected at install time; only a domain change is relevant here.
 ynh_script_progression "Re-creating the NGINX configuration for the new URL..."
 
 ynh_config_add_nginx

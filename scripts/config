@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# Read-only status display for the config panel.
-# Editable values live in app settings; see doc/ADMIN.md for how to change
-# them (settings are re-rendered into qBittorrent.conf on upgrade/apply).
+# Read-only status display; editable values live in app settings (see doc/ADMIN.md).
 
 #=================================================
 # IMPORT GENERIC HELPERS

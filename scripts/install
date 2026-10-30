@@ -65,8 +65,7 @@ ynh_script_progression "Starting $app's systemd service..."
 
 ynh_systemctl --service="$app" --action="start"
 
-# Wait for the WebUI API to answer (localhost is exempt from authentication,
-# exactly like the *arr stack connects to it)
+# The WebUI API answers unauthenticated from localhost.
 for i in $(seq 1 30); do
     curl -sf "http://127.0.0.1:$port/api/v2/app/version" >/dev/null && break
     [ "$i" -eq 30 ] && ynh_die "qBittorrent WebUI did not come up on port $port (check /var/log/$app/$app.log)"
@@ -81,12 +80,7 @@ ynh_enable_i2p_discovery
 #=================================================
 # I2P SEED TEST TORRENT
 #=================================================
-# A tiny unique payload, torrented via qBittorrent's own creator API
-# (/api/v2/torrentcreator/addTask) and announced to the bundled I2P
-# opentrackers with startSeeding=true. When it reaches state "stalledUP"/
-# "uploading" and a tracker answers without error, the whole SAM ->
-# router -> I2P-tracker pipeline is demonstrably working. doc/ADMIN.md
-# has the verification commands.
+# Tiny unique payload seeded via qbt's creator API to the bundled I2P trackers; if it seeds and a tracker answers, the SAM -> router -> I2P-tracker pipeline works (verify: doc/ADMIN.md).
 case "$(echo "${add_seed_test:-true}" | tr '[:upper:]' '[:lower:]')" in
 true|1|yes|on)
     ynh_script_progression "Creating the I2P seed-test torrent..."
@@ -107,8 +101,7 @@ true|1|yes|on)
         chown "$app:$app" "$st_payload"
     fi
 
-    # Trackers come from the same list render_qbt_config embeds as
-    # Session\AdditionalTrackers, so the two never drift apart.
+    # Same $I2P_TRACKERS list render_qbt_config embeds, so the two never drift.
     seed_task=$(curl -sf -X POST \
         --data-urlencode "sourcePath=$st_payload" \
         --data-urlencode "torrentFilePath=$st_dir/yunohost-i2p-seedtest.torrent" \

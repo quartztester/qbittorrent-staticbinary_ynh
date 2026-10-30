@@ -22,8 +22,7 @@ chown -R "$app:$app" "$install_dir"
 #=================================================
 ynh_script_progression "Re-creating configuration files..."
 
-# qBittorrent rewrites its conf file at shutdown, so it must be stopped
-# before re-rendering, or the new settings would be clobbered.
+# qbt rewrites its conf at shutdown: stop before re-rendering or the new settings get clobbered.
 ynh_systemctl --service="$app" --action="stop"
 
 mkdir -p "/var/log/$app"

@@ -4,15 +4,7 @@
 # COMMON FUNCTIONS AND VARS
 #=================================================
 
-# I2P trackers. Reachability census 2026-10-29 via the box's I2P HTTP
-# proxy: entries answer HTTP in any form (bencode, tracker-side error
-# page, even empty opentracker body) = alive; name-unresolvable /
-# proxy-refused / timeout = dropped. Removed this pass: nyaaplus,
-# opentracker.eeptorrent, opentracker.simp (+udp), qimlz..b32, sigma,
-# tracker.nyaa2p, opentracker-actix (host gone; dg2 is zzzot's vanity),
-# vern, atia, omitracker, psa.  Deliberately excluded:
-# opentracker.i2p.rocks (clearnet bridge — announcing there would
-# outproxy and expose the server IP, against the I2P-only policy).
+# Reachability-censused I2P-only tracker list; opentracker.i2p.rocks deliberately excluded (clearnet bridge — announcing there would outproxy and leak the server IP).
 I2P_TRACKERS=$(cat <<'EOF'
 http://tracker2.postman.i2p/announce.php
 http://w7tpbzncbcocrqtwwm3nezhnnsw4ozadvi2hmvzdhrqzfxfum7wa.b32.i2p/a
@@ -29,10 +21,7 @@ udp://opentracker.skank.i2p:6969/a
 EOF
 )
 
-# Render $data_dir/profile/qBittorrent/config/qBittorrent.conf from the
-# conf/qBittorrent.conf template, deriving the WebUI PBKDF2 hash from the
-# stored webui_password setting (Qt QPasswordDigestor: PBKDF2-HMAC-SHA512,
-# 100000 iterations, "salt:derived" in base64).
+# WebUI password hash is Qt QPasswordDigestor format: PBKDF2-HMAC-SHA512, 100000 iterations, "salt:derived" in base64.
 render_qbt_config() {
     webui_pwd_hash="$(python3 - "$webui_password" <<'PY'
 import base64, hashlib, os, sys
@@ -42,16 +31,11 @@ print(base64.b64encode(salt).decode() + ":" + base64.b64encode(dk).decode())
 PY
 )"
 
-    # Anonymous / I2P-only posture: no clearnet peer discovery at all.
-    # YunoHost booleans may arrive as 1/0 or true/false depending on the
-    # arg-serialization path, so normalize.
+    # YunoHost booleans arrive as 1/0 or true/false depending on the arg-serialization path; normalize.
     local anon="${anonymous:-true}"
     case "$(echo "$anon" | tr '[:upper:]' '[:lower:]')" in
         true|1|yes|on)
-            # Checkboxes on by default per user preference; libtorrent's
-            # anonymous session suppresses DHT/PeX/LSD functionally, so this
-            # is leak-free (verified 2026-10-29: zero UDP sockets, zero
-            # conntrack hits with anonymous on).
+            # Safe: libtorrent's anonymous session suppresses DHT/PeX/LSD functionally (verified: zero UDP sockets / conntrack hits).
             anonymous="true"; dht="true"; lsd="true"; pex="true"
             # i2pd guide: bind everything to loopback so nothing leaks
             net_interface="lo"; net_interface_address="127.0.0.1" ;;
@@ -65,8 +49,7 @@ PY
     i2p_sam_port="${i2p_sam_port:-7656}"
     torrent_port="${torrent_port:-6881}"
 
-    # i2pd guide: route tracker traffic through the router's HTTP proxy —
-    # this is what resolves *.i2p tracker names at all. Only with I2P on.
+    # i2pd guide: tracker traffic goes through the router's HTTP proxy — that is what resolves *.i2p tracker names.
     http_proxy_host="${http_proxy_host:-127.0.0.1}"
     http_proxy_port="${http_proxy_port:-4447}"
     if [ "$i2p_enabled" = "true" ]; then
@@ -81,9 +64,7 @@ PY
     ynh_config_add --template="qBittorrent.conf" \
         --destination="$data_dir/profile/qBittorrent/config/qBittorrent.conf"
 
-    # Session\AdditionalTrackers is ONE line with literal \n separators;
-    # written through python (env-var handoff, quoted heredoc: no shell
-    # interpolation anywhere).
+    # Session\AdditionalTrackers must be ONE line with literal \n separators; python writes it (env-var handoff, quoted heredoc, no shell interpolation).
     export I2P_TRACKERS
     python3 - "$data_dir/profile/qBittorrent/config/qBittorrent.conf" <<'PY'
 import os, sys
@@ -108,12 +89,7 @@ PY
 #=================================================
 # ACCOUNT-FREE I2P DISCOVERY: POSTMAN SEARCH PLUGIN (SEARCH-ONLY)
 #=================================================
-# tracker2.postman.i2p is where the live I2P swarms actually are.
-# Discovery is SEARCH-ONLY via the WebUI Search tab: the bundled
-# postman_i2p engine's python subprocess resolves .i2p via the proxy
-# environment qbt hands it. (An RSS feed used to be pre-registered;
-# it was retired — Postman's RSS is empty/throttled more often than
-# not, and the Search tab supersedes it.) Safe to re-run (idempotent).
+# SEARCH-ONLY discovery via the WebUI Search tab (bundled postman_i2p resolves .i2p via qbt's proxy env). RSS pre-registration retired: empty/throttled, Search supersedes. Idempotent.
 ynh_enable_i2p_discovery() {
     ynh_script_progression "Enabling account-free I2P discovery (Postman search plugin)..."
 
@@ -125,10 +101,7 @@ ynh_enable_i2p_discovery() {
     curl -sf -X POST -d "path=Postman" \
         "http://127.0.0.1:$port/api/v2/rss/removeItem" >/dev/null || true
 
-    # Default engine policy: only the I2P-NATIVE index (Postman) is
-    # ticked. TorrentFunk/TorrentZ mirror the clearnet catalog — their
-    # swarms are unreachable from an I2P-only box — so they ship
-    # installed but unticked; users can tick them in the plugin dialog.
+    # Only the I2P-native Postman engine is enabled; torrentfunk/torrentz mirror the clearnet catalog (unreachable from an I2P-only box), so installed but unticked.
     curl -sf -X POST -d "names=postman_i2p" -d "enable=true" \
         "http://127.0.0.1:$port/api/v2/search/enablePlugin" >/dev/null || true
     for eng in torrentfunk torrentz; do
@@ -136,14 +109,7 @@ ynh_enable_i2p_discovery() {
             "http://127.0.0.1:$port/api/v2/search/enablePlugin" >/dev/null || true
     done
 
-    # --- nova3 search framework + bundled postman_i2p engine ---
-    # qbt 5.x hard-codes its engine location to <conf>/data/nova3 (the
-    # Search/PluginsPath key no longer exists). On an online boot qbt
-    # self-downloads the framework there; we pre-seed framework + our
-    # engine so it also works offline and ships discovery out-of-box.
-    # Source is the package's own conf/ tree: scripts run with cwd =
-    # their scripts/ dir, so ../conf during install/upgrade (clone tree),
-    # falling back to the settings archive for restore-context callers.
+    # qbt 5.x hard-codes engines to <conf>/data/nova3 (the Search\PluginsPath key no longer exists); pre-seed framework + engine from ../conf (scripts run with cwd = scripts/) or the settings archive on restore, so search works offline.
     local nova_src="" cand
     for cand in "../conf/nova3" "/etc/yunohost/apps/$app/conf/nova3"; do
         [ -d "$cand" ] && nova_src="$cand" && break
@@ -159,12 +125,7 @@ ynh_enable_i2p_discovery() {
         chown -R "$app:$app" "$pl_dir"
     fi
 
-    # --- Python >= 3.13 for qBittorrent's search subsystem ---
-    # qbt 5.3 refuses to run search plugins below CPython 3.13; Debian's
-    # system python is older. Reuse a local standalone interpreter if one
-    # exists, otherwise unpack the pinned python-build-standalone tarball
-    # into the install dir (same self-contained spirit as the static
-    # qbittorrent-nox binary) and pip-install 'requests' into it.
+    # qbt 5.3 refuses search plugins below CPython 3.13 and Debian's system python is older: reuse a local standalone interpreter or unpack the pinned python-build-standalone tarball.
     local py=""
     for cand in "$install_dir/python/bin/python3.13" /usr/local/opt/python3.13/bin/python3.13; do
         [ -x "$cand" ] && py="$cand" && break
@@ -174,16 +135,13 @@ ynh_enable_i2p_discovery() {
         ynh_setup_source --source_id=py313 --dir="$install_dir" || true
         py="$install_dir/python/bin/python3.13"
         if [ -x "$py" ]; then
-            # soft: the bundled engine uses stdlib-only helpers; pip
-            # failures (offline clearnet) must not disable search
+            # Soft: bundled engine is stdlib-only; pip failure (offline clearnet) must not disable search.
             "$py" -m pip install --quiet --disable-pip-version-check requests >/dev/null 2>&1 || true
         fi
     fi
     chown -R "$app:$app" "$install_dir/python" 2>/dev/null || true
 
-    # --- drop-in: .i2p name resolution (HTTP_PROXY) + shim python on PATH
-    #     (qbt probes PATH for its search interpreter before applying
-    #      Search\PythonPath, so the shim is what it actually finds) ---
+    # systemd drop-in: HTTP_PROXY gives plugins .i2p resolution; qbt probes PATH for its search interpreter before Search\PythonPath, hence the shim.
     local px="${http_proxy_port:-4447}"
     rm -f "/etc/systemd/system/$app.service.d/i2p-proxy-env.conf" \
           "/etc/systemd/system/$app.service.d/i2p-search-python.conf"
@@ -206,8 +164,7 @@ Environment=HTTP_PROXY=http://127.0.0.1:$px
 EOF
     fi
 
-    # --- enable the search subsystem (qbt rewrites its conf at shutdown,
-    #     so flip it while stopped, then restart once) ---
+    # qbt rewrites its conf at shutdown, so flip the Search keys while stopped, then restart once.
     local conf="$data_dir/profile/qBittorrent/config/qBittorrent.conf"
     if [ -n "$py" ] && ! grep -q '^Search\\Enabled=true' "$conf" 2>/dev/null; then
         ynh_systemctl --service="$app" --action="stop"
