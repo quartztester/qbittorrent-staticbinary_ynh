@@ -106,7 +106,7 @@ PY
 }
 
 #=================================================
-# Account-free I2P discovery: Postman search plugin (search-only)
+# ACCOUNT-FREE I2P DISCOVERY: POSTMAN SEARCH PLUGIN (SEARCH-ONLY)
 #=================================================
 # tracker2.postman.i2p is where the live I2P swarms actually are.
 # Discovery is SEARCH-ONLY via the WebUI Search tab: the bundled
