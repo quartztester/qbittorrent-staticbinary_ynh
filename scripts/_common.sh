@@ -91,7 +91,7 @@ PY
 #=================================================
 # SEARCH-ONLY discovery via the WebUI Search tab (bundled postman_i2p resolves .i2p via qbt's proxy env). RSS pre-registration retired: empty/throttled, Search supersedes. Idempotent.
 ynh_enable_i2p_discovery() {
-    ynh_script_progression "Enabling account-free I2P discovery (Postman search plugin)..."
+    ynh_print_info "Enabling account-free I2P discovery (Postman search plugin)..."
 
     # search plugin subprocesses fetch through the session's misc proxy
     curl -sf -X POST \
@@ -131,7 +131,7 @@ ynh_enable_i2p_discovery() {
         [ -x "$cand" ] && py="$cand" && break
     done
     if [ -z "$py" ] && [ "$(uname -m)" = "x86_64" ]; then
-        ynh_script_progression "Installing standalone CPython 3.13 for search plugins..."
+        ynh_print_info "Installing standalone CPython 3.13 for search plugins..."
         ynh_setup_source --source_id=py313 --dir="$install_dir" || true
         py="$install_dir/python/bin/python3.13"
         if [ -x "$py" ]; then

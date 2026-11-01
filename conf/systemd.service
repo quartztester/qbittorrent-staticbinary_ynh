@@ -17,10 +17,10 @@ TimeoutStopSec=30
 UMask=0027
 
 # Hardening (data lives in /home/yunohost.app, so no ProtectHome)
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=full
-ProtectControlGroups=true
+ NoNewPrivileges=true
+ PrivateTmp=true
+ ProtectSystem=full
+ ProtectControlGroups=true
 LockPersonality=true
 RestrictSUIDSGID=true
 ReadWritePaths=__DATA_DIR__
@@ -28,5 +28,7 @@ ReadWritePaths=__DATA_DIR__
 StandardOutput=append:/var/log/__APP__/__APP__.log
 StandardError=inherit
 
+ SystemCallFilter=~@clock @debug @module @mount @obsolete @reboot @setuid @swap @cpu-emulation @privileged
+ CapabilityBoundingSet=
 [Install]
 WantedBy=multi-user.target
