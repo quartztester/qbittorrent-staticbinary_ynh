@@ -132,7 +132,7 @@ ynh_enable_i2p_discovery() {
     done
     if [ -z "$py" ] && [ "$(uname -m)" = "x86_64" ]; then
         ynh_print_info "Installing standalone CPython 3.13 for search plugins..."
-        ynh_setup_source --source_id=py313 --dir="$install_dir" || true
+        ynh_setup_source --source_id=py313 --dest_dir="$install_dir" || true
         py="$install_dir/python/bin/python3.13"
         if [ -x "$py" ]; then
             # Soft: bundled engine is stdlib-only; pip failure (offline clearnet) must not disable search.
