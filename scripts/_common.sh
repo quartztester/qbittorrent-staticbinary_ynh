@@ -178,11 +178,15 @@ Environment=HTTP_PROXY=http://127.0.0.1:$px
 Environment=PATH=$shim:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EOF
     else
-        cat > "/etc/systemd/system/$app.service.d/i2p-search.conf" <<EOF
+        cat > "/etc/systemd/system/$app.service.d/i2p-search.conf" <<'DROPEOF'
 [Service]
-Environment=HTTP_PROXY=http://127.0.0.1:$px
-EOF
+Environment=HTTP_PROXY=http://127.0.0.1:__PX__
+DROPEOF
+        sed -i "s|__PX__|$px|" "/etc/systemd/system/$app.service.d/i2p-search.conf"
     fi
+    # without this every later systemctl call journals a "drop-ins changed
+    # on disk, run daemon-reload" warning, which CI counts against us
+    systemctl daemon-reload
 
     # qbt rewrites its conf at shutdown, so flip the Search keys while stopped, then restart once.
     local conf="$data_dir/profile/qBittorrent/config/qBittorrent.conf"
