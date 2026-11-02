@@ -143,6 +143,9 @@ ynh_enable_i2p_discovery() {
 
     # systemd drop-in: HTTP_PROXY gives plugins .i2p resolution; qbt probes PATH for its search interpreter before Search\PythonPath, hence the shim.
     local px="${http_proxy_port:-4447}"
+    # .d only exists once the unit is installed — create it so this works
+    # both in install (unit added later) and upgrade flows.
+    mkdir -p "/etc/systemd/system/$app.service.d"
     rm -f "/etc/systemd/system/$app.service.d/i2p-proxy-env.conf" \
           "/etc/systemd/system/$app.service.d/i2p-search-python.conf"
     local shim=""
