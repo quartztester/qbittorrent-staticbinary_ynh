@@ -2,8 +2,6 @@ version = "1.0"
 
 [main]
 
-    [main.status]
-    name = "Status"
 
         [main.status.i2p_status]
         ask.en = "I2P routing enabled"
