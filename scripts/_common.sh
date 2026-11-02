@@ -61,8 +61,25 @@ PY
     add_trackers_enabled="${add_trackers_enabled:-true}"
 
     mkdir -p "$data_dir/profile/qBittorrent/config" "$data_dir/downloads"
-    ynh_config_add --template="qBittorrent.conf" \
-        --destination="$data_dir/profile/qBittorrent/config/qBittorrent.conf"
+    # NOT ynh_config_add: qBittorrent rewrites this file at every run, and
+    # the checksum drift makes CI flag it as "manually modified" on upgrade
+    sed \
+        -e "s|__WEBUI_PWD_HASH__|$webui_pwd_hash|g" \
+        -e "s|__PORT__|$port|g" \
+        -e "s|__TORRENT_PORT__|$torrent_port|g" \
+        -e "s|__DATA_DIR__|$data_dir|g" \
+        -e "s|__ADD_TRACKERS_ENABLED__|$add_trackers_enabled|g" \
+        -e "s|__ANONYMOUS__|$anon|g" \
+        -e "s|__DHT__|$dht|g" \
+        -e "s|__LSD__|$lsd|g" \
+        -e "s|__PEX__|$pex|g" \
+        -e "s|__NET_INTERFACE__|$net_interface|g" \
+        -e "s|__NET_INTERFACE_ADDRESS__|$net_interface_address|g" \
+        -e "s|__HTTP_PROXY_HOST__|$http_proxy_host|g" \
+        -e "s|__HTTP_PROXY_PORT__|$http_proxy_port|g" \
+        -e "s|__PROXY_TYPE__|$proxy_type|g" \
+        "$(dirname "${BASH_SOURCE[0]}")/../conf/qBittorrent.conf" \
+        > "$data_dir/profile/qBittorrent/config/qBittorrent.conf"
 
     # Session\AdditionalTrackers must be ONE line with literal \n separators; python writes it (env-var handoff, quoted heredoc, no shell interpolation).
     export I2P_TRACKERS
