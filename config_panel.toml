@@ -14,11 +14,11 @@ version = "1.0"
         [main.status.sam_endpoint]
         ask.en = "SAM bridge endpoint"
         ask.fr = "Endpoint du pont SAM"
-        type = "display"
+        type = "string"
         bind = "none"
 
         [main.status.webui_endpoint]
         ask.en = "WebUI endpoint"
         ask.fr = "Endpoint de l'interface web"
-        type = "display"
+        type = "string"
         bind = "none"
