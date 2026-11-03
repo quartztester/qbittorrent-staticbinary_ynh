@@ -7,7 +7,7 @@ name = "qBittorrent (static)"
 description.en = "BitTorrent download client, static build with native I2P support"
 description.fr = "Client de téléchargement BitTorrent, build statique avec support I2P natif"
 
-version = "5.3.0~ynh2"
+version = "5.3.0~ynh3"
 
 maintainers = ["quartztester"]
 
